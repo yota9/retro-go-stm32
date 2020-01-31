@@ -1,0 +1,5 @@
+set(COMPONENT_SRCDIRS ". engine ports")
+set(COMPONENT_ADD_INCLUDEDIRS ". engine")
+set(COMPONENT_REQUIRES "odroid")
+register_component()
+rg_setup_compile_options(-Wno-all -Wno-error -Wno-sequence-point)
