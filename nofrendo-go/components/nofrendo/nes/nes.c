@@ -29,6 +29,10 @@
 #include <osd.h>
 #include <nes.h>
 
+#define NES_OVERDRAW (8)
+
+DRAM_ATTR static uint8_t framebuffer_data[2][(NES_SCREEN_WIDTH + NES_OVERDRAW * 2) * NES_SCREEN_HEIGHT];
+DRAM_ATTR static uint8_t bitmap_data[2][sizeof(bitmap_t) + (sizeof(uint8 *) * NES_SCREEN_HEIGHT)];
 static bitmap_t *framebuffers[2];
 static nes_t nes;
 
@@ -189,9 +193,6 @@ void nes_shutdown(void)
    ppu_shutdown();
    apu_shutdown();
    nes6502_shutdown();
-   rom_free(nes.rominfo);
-   bmp_free(framebuffers[0]);
-   bmp_free(framebuffers[1]);
 }
 
 /* Setup region-dependant timings */
@@ -218,6 +219,18 @@ void nes_setregion(region_t region)
    }
 }
 
+void bmp_init(bitmap_t *bitmap, int index, int width , int height, int overdraw)
+{
+   bitmap->data = framebuffer_data[index];
+   bitmap->width = NES_SCREEN_WIDTH;
+   bitmap->height = NES_SCREEN_HEIGHT;
+   bitmap->pitch = NES_SCREEN_WIDTH + (overdraw * 2);
+
+   for (int i = 0; i < height; i++)
+      bitmap->line[i] = bitmap->data + (bitmap->pitch * i) + overdraw;
+}
+
+
 /* Initialize NES CPU, hardware, etc. */
 int nes_init(region_t region, int sample_rate)
 {
@@ -231,10 +244,11 @@ int nes_init(region_t region, int sample_rate)
    nes.drawframe = true;
 
    /* Framebuffers */
-   framebuffers[0] = bmp_create(NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, 8);
-   framebuffers[1] = bmp_create(NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, 8);
-   if (NULL == framebuffers[0] || NULL == framebuffers[1])
-      goto _fail;
+   int overdraw = 8;
+   framebuffers[0] = (bitmap_t*)bitmap_data[0];
+   framebuffers[1] = (bitmap_t*)bitmap_data[1];
+   bmp_init(framebuffers[0], 0, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, NES_OVERDRAW);
+   bmp_init(framebuffers[1], 1, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, NES_OVERDRAW);
 
    /* memory */
    nes.mem = mem_create();

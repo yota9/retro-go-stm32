@@ -1,14 +1,23 @@
 #pragma once
 
+#include <stdbool.h>
+
+#if !defined(ESP_IDF_VERSION_MAJOR)
+
+// #include "shared.h"
+#include "porting.h"
+
+#else
+
 #include <esp_system.h>
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
-#include <stdbool.h>
 
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR >= 4
 #include <esp32/rom/crc.h>
 #else
 #include <rom/crc.h>
+#endif
 #endif
 
 #include "config.h"
@@ -127,13 +136,13 @@ void odroid_system_spi_lock_release(spi_lock_res_t);
 static inline uint get_frame_time(uint refresh_rate)
 {
      // return (CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ * 1000000) / refresh_rate
-     return 1000000 / refresh_rate;
+     return (uint)(1000 / refresh_rate + 0.5f);
 }
 
 static inline uint get_elapsed_time()
 {
      // uint now = xthal_get_ccount();
-     return (uint)esp_timer_get_time(); // uint is plenty resolution for us
+     return (uint)HAL_GetTick(); // uint is plenty resolution for us
 }
 
 static inline uint get_elapsed_time_since(uint start)
@@ -155,6 +164,23 @@ static inline uint get_elapsed_time_since(uint start)
 #endif
 
 #define RG_PANIC(x) odroid_system_panic(x, __FUNCTION__, __FILE__)
+
+
+#define MALLOC_CAP_EXEC             (1<<0)  ///< Memory must be able to run executable code
+#define MALLOC_CAP_32BIT            (1<<1)  ///< Memory must allow for aligned 32-bit data accesses
+#define MALLOC_CAP_8BIT             (1<<2)  ///< Memory must allow for 8/16/...-bit data accesses
+#define MALLOC_CAP_DMA              (1<<3)  ///< Memory must be able to accessed by DMA
+#define MALLOC_CAP_PID2             (1<<4)  ///< Memory must be mapped to PID2 memory space (PIDs are not currently used)
+#define MALLOC_CAP_PID3             (1<<5)  ///< Memory must be mapped to PID3 memory space (PIDs are not currently used)
+#define MALLOC_CAP_PID4             (1<<6)  ///< Memory must be mapped to PID4 memory space (PIDs are not currently used)
+#define MALLOC_CAP_PID5             (1<<7)  ///< Memory must be mapped to PID5 memory space (PIDs are not currently used)
+#define MALLOC_CAP_PID6             (1<<8)  ///< Memory must be mapped to PID6 memory space (PIDs are not currently used)
+#define MALLOC_CAP_PID7             (1<<9)  ///< Memory must be mapped to PID7 memory space (PIDs are not currently used)
+#define MALLOC_CAP_SPIRAM           (1<<10) ///< Memory must be in SPI RAM
+#define MALLOC_CAP_INTERNAL         (1<<11) ///< Memory must be internal; specifically it should not disappear when flash/spiram cache is switched off
+#define MALLOC_CAP_DEFAULT          (1<<12) ///< Memory can be returned in a non-capability-specific memory allocation (e.g. malloc(), calloc()) call
+#define MALLOC_CAP_INVALID          (1<<31) ///< Memory can't be used / list end marker
+
 
 #define MEM_ANY   0
 #define MEM_SLOW  MALLOC_CAP_SPIRAM

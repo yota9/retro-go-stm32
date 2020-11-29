@@ -94,8 +94,8 @@ typedef  unsigned int   uint32;
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <esp_attr.h>
 #include <nes.h>
+#include <porting.h>
 
 /* End basic types */
 
