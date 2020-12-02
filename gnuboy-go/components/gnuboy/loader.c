@@ -4,6 +4,8 @@
 #include <time.h>
 #include <ctype.h>
 
+#include "gb_rom.h"
+#include "rom_info.h"
 #include "defs.h"
 #include "regs.h"
 #include "mem.h"
@@ -74,10 +76,6 @@ static const byte ramsize_table[256] =
 	4 /* FIXME - what value should this be?! */
 };
 
-static FILE* fpRomFile = NULL;
-
-static char *romfile=NULL;
-static char *sramfile=NULL;
 
 
 #ifdef IS_LITTLE_ENDIAN
@@ -184,16 +182,21 @@ static svar_t svars[] =
 };
 
 
+#define BANK_SIZE 0x4000
+#define BANK_NUM  32
+
+uint8_t banks[BANK_NUM][BANK_SIZE] __attribute__((section (".emulator_data")));
+
+// TODO: Revisit this later as memory might run out when loading
+
 int IRAM_ATTR rom_loadbank(short bank)
 {
-	const size_t BANK_SIZE = 0x4000;
 	const size_t OFFSET = bank * BANK_SIZE;
 
 	printf("bank_load: loading bank %d.\n", bank);
-	rom.bank[bank] = (byte*)malloc(BANK_SIZE);
+	rom.bank[bank] = banks[bank % BANK_NUM];
 	if (rom.bank[bank] == NULL) {
-		while (true) {
-			uint8_t i = esp_random() & 0xFF;
+		for (int i = BANK_NUM-1; i > 0; i--) {
 			if (rom.bank[i]) {
 				printf("bank_load: reclaiming bank %d.\n", i);
 				rom.bank[bank] = rom.bank[i];
@@ -203,35 +206,24 @@ int IRAM_ATTR rom_loadbank(short bank)
 		}
 	}
 
-	// Make sure no transaction is running
-	odroid_system_spi_lock_acquire(SPI_LOCK_SDCARD);
 
-	// Load the 16K page
-	if (fseek(fpRomFile, OFFSET, SEEK_SET))
-	{
-		RG_PANIC("ROM fseek failed");
-	}
-
-	if (fread(rom.bank[bank], BANK_SIZE, 1, fpRomFile) < 1)
-	{
-		RG_PANIC("ROM fread failed");
-	}
-
-	odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
+	// TODO: check bounds (famous last words :D)
+	memcpy(rom.bank[bank], &ROM_DATA[OFFSET], BANK_SIZE);
 
 	return 0;
 }
 
+uint8_t sram[8192] __attribute__((section (".emulator_data")));
 
 int rom_load()
 {
-    printf("loader: Loading file: %s\n", romfile);
+    // printf("loader: Loading file: %s\n", romfile);
 
-	fpRomFile = fopen(romfile, "rb");
-	if (fpRomFile == NULL)
-	{
-		emu_die("ROM fopen failed");
-	}
+	// fpRomFile = fopen(romfile, "rb");
+	// if (fpRomFile == NULL)
+	// {
+	// 	emu_die("ROM fopen failed");
+	// }
 
 	rom_loadbank(0);
 
@@ -279,8 +271,10 @@ int rom_load()
 	printf("loader: mbc.type=%s, mbc.romsize=%d (%dK), mbc.ramsize=%d (%dK)\n",
 		mbcName, mbc.romsize, rom.length / 1024, mbc.ramsize, mbc.ramsize * 8);
 
+	// TODO: Revisit this later
 	// SRAM
-	ram.sbank = rg_alloc(8192 * mbc.ramsize, MEM_FAST);
+	// ram.sbank = rg_alloc(8192 * mbc.ramsize, MEM_FAST);
+	ram.sbank = sram;
 	ram.sram_dirty = 0;
 
 	memset(ram.sbank, 0xff, 8192 * mbc.ramsize);
@@ -317,47 +311,47 @@ int rom_load()
 
 int sram_load()
 {
-	int ret = -1;
-	FILE *f;
+	// int ret = -1;
+	// FILE *f;
 
-	if (!mbc.batt || !sramfile || !*sramfile) return -1;
+	// if (!mbc.batt || !sramfile || !*sramfile) return -1;
 
-	odroid_system_spi_lock_acquire(SPI_LOCK_SDCARD);
+	// odroid_system_spi_lock_acquire(SPI_LOCK_SDCARD);
 
-	if ((f = fopen(sramfile, "rb")))
-	{
-		printf("sram_load: Loading SRAM\n");
-		fread(ram.sbank, 8192, mbc.ramsize, f);
-		rtc_load(f);
-		fclose(f);
-		ret = 0;
-	}
+	// if ((f = fopen(sramfile, "rb")))
+	// {
+	// 	printf("sram_load: Loading SRAM\n");
+	// 	fread(ram.sbank, 8192, mbc.ramsize, f);
+	// 	rtc_load(f);
+	// 	fclose(f);
+	// 	ret = 0;
+	// }
 
-	odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
-	return ret;
+	// odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
+	// return ret;
 }
 
 
 int sram_save()
 {
-	int ret = -1;
-	FILE *f;
+	// int ret = -1;
+	// FILE *f;
 
-	if (!mbc.batt || !sramfile || !mbc.ramsize) return -1;
+	// if (!mbc.batt || !sramfile || !mbc.ramsize) return -1;
 
-	odroid_system_spi_lock_acquire(SPI_LOCK_SDCARD);
+	// odroid_system_spi_lock_acquire(SPI_LOCK_SDCARD);
 
-	if ((f = fopen(sramfile, "wb")))
-	{
-		printf("sram_load: Saving SRAM\n");
-		fwrite(ram.sbank, 8192, mbc.ramsize, f);
-		rtc_save(f);
-		fclose(f);
-		ret = 0;
-	}
+	// if ((f = fopen(sramfile, "wb")))
+	// {
+	// 	printf("sram_load: Saving SRAM\n");
+	// 	fwrite(ram.sbank, 8192, mbc.ramsize, f);
+	// 	rtc_save(f);
+	// 	fclose(f);
+	// 	ret = 0;
+	// }
 
-	odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
-	return ret;
+	// odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
+	// return ret;
 }
 
 
@@ -442,78 +436,73 @@ int state_save(char *name)
 
 int state_load(char *name)
 {
-	FILE *f;
+	
+	int i, j;
+	byte* buf = malloc(4096);
+	if (!buf) abort();
 
-	if ((f = fopen(name, "rb")))
+	un32 (*header)[2] = (un32 (*)[2])buf;
+	un32 d;
+	int irl = hw.cgb ? 8 : 2;
+	int vrl = hw.cgb ? 4 : 2;
+	int srl = mbc.ramsize << 1;
+
+	ver = hiofs = palofs = oamofs = wavofs = 0;
+
+	memcpy(buf, ROM_DATA, 4096);
+
+	for (j = 0; header[j][0]; j++)
 	{
-		int i, j;
-		byte* buf = malloc(4096);
-		if (!buf) abort();
-
-		un32 (*header)[2] = (un32 (*)[2])buf;
-		un32 d;
-		int irl = hw.cgb ? 8 : 2;
-		int vrl = hw.cgb ? 4 : 2;
-		int srl = mbc.ramsize << 1;
-
-		ver = hiofs = palofs = oamofs = wavofs = 0;
-
-		fseek(f, 0, SEEK_SET);
-		fread(buf, 4096, 1, f);
-
-		for (j = 0; header[j][0]; j++)
+		for (i = 0; svars[i].ptr; i++)
 		{
-			for (i = 0; svars[i].ptr; i++)
+			if (header[j][0] != *(un32 *)svars[i].key)
+				continue;
+			d = LIL(header[j][1]);
+			switch (svars[i].len)
 			{
-				if (header[j][0] != *(un32 *)svars[i].key)
-					continue;
-				d = LIL(header[j][1]);
-				switch (svars[i].len)
-				{
-				case 1:
-					*(byte *)svars[i].ptr = d;
-					break;
-				case 2:
-					*(un16 *)svars[i].ptr = d;
-					break;
-				case 4:
-					*(un32 *)svars[i].ptr = d;
-					break;
-				}
+			case 1:
+				*(byte *)svars[i].ptr = d;
+				break;
+			case 2:
+				*(un16 *)svars[i].ptr = d;
+				break;
+			case 4:
+				*(un32 *)svars[i].ptr = d;
 				break;
 			}
+			break;
 		}
-
-		if (hiofs) memcpy(ram.hi, buf+hiofs, sizeof ram.hi);
-		if (palofs) memcpy(lcd.pal, buf+palofs, sizeof lcd.pal);
-		if (oamofs) memcpy(lcd.oam.mem, buf+oamofs, sizeof lcd.oam);
-
-		if (wavofs) memcpy(snd.wave, buf+wavofs, sizeof snd.wave);
-		else memcpy(snd.wave, ram.hi+0x30, 16); /* patch data from older files */
-
-		iramblock = 1;
-		vramblock = 1+irl;
-		sramblock = 1+irl+vrl;
-
-		fseek(f, iramblock<<12, SEEK_SET);
-		fread(ram.ibank, 4096, irl, f);
-
-		fseek(f, vramblock<<12, SEEK_SET);
-		fread(lcd.vbank, 4096, vrl, f);
-
-		fseek(f, sramblock<<12, SEEK_SET);
-
-		size_t count = fread(ram.sbank, 4096, srl, f);
-
-		printf("state_load: read sram addr=%p, size=0x%x, count=%d\n", (void*)ram.sbank, 4096 * srl, count);
-
-		free(buf);
-		fclose(f);
-		pal_dirty();
-		sound_dirty();
-		mem_updatemap();
-		return 0;
 	}
+
+	if (hiofs) memcpy(ram.hi, buf+hiofs, sizeof ram.hi);
+	if (palofs) memcpy(lcd.pal, buf+palofs, sizeof lcd.pal);
+	if (oamofs) memcpy(lcd.oam.mem, buf+oamofs, sizeof lcd.oam);
+
+	if (wavofs) memcpy(snd.wave, buf+wavofs, sizeof snd.wave);
+	else memcpy(snd.wave, ram.hi+0x30, 16); /* patch data from older files */
+
+	iramblock = 1;
+	vramblock = 1+irl;
+	sramblock = 1+irl+vrl;
+
+	memcpy(ram.ibank, &ROM_DATA[iramblock << 12], 4096);
+
+	// fseek(f, vramblock<<12, SEEK_SET);
+	memcpy(lcd.vbank, &ROM_DATA[vramblock<<12], 4096);
+
+	// fseek(f, sramblock<<12, SEEK_SET);
+	// size_t count = fread(ram.sbank, 4096, srl, f);
+	// TODO: This looks like potential OOB read.. 
+	memcpy(ram.sbank, &ROM_DATA[sramblock << 12], 4096);
+
+	printf("state_load: read sram addr=%p, size=0x%x, count=%d\n", (void*)ram.sbank, 4096 * srl);
+
+	free(buf);
+	// fclose(f);
+	pal_dirty();
+	sound_dirty();
+	mem_updatemap();
+	return 0;
 
 	return -1;
 }
@@ -522,8 +511,6 @@ int state_load(char *name)
 void loader_unload()
 {
 	sram_save();
-	if (romfile) free(romfile);
-	if (sramfile) free(sramfile);
 	if (ram.sbank) free(ram.sbank);
 
 	for (int i = 0; i < 512; i++) {
@@ -534,16 +521,12 @@ void loader_unload()
 	}
 
 	mbc.type = mbc.romsize = mbc.ramsize = mbc.batt = mbc.rtc = 0;
-	romfile = sramfile = NULL;
 	// ram.sbank = NULL;
 }
 
 
 void loader_init(char *s)
 {
-	romfile  = odroid_system_get_path(ODROID_PATH_ROM_FILE, 0);
-	sramfile = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, 0);
-
 	rom_load();
 	// sram_load();
 }
