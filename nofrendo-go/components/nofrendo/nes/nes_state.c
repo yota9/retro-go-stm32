@@ -29,19 +29,14 @@
 #include "nes_state.h"
 
 #define _fread(buffer, size) {                       \
-   if (fread(buffer, size, 1, file) != 1)            \
-   {                                                 \
-      MESSAGE_ERROR("state_load: fread failed.\n");  \
-      goto _error;                                   \
-   }                                                 \
+   memcpy(buffer, ptr, size); \
+   ptr += size; \
 }
 
+// TODO: Jeopardy: What is bounds checking
 #define _fwrite(buffer, size) {                      \
-   if (fwrite(buffer, size, 1, file) != 1)           \
-   {                                                 \
-      MESSAGE_ERROR("state_save: fwrite failed.\n"); \
-      goto _error;                                   \
-   }                                                 \
+   memcpy(ptr, buffer, size);                        \
+   ptr += size;                                      \
 }
 
 #ifdef IS_LITTLE_ENDIAN
@@ -72,26 +67,24 @@ void state_setslot(int slot)
    }
 }
 
-int state_save(char* fn)
+int state_save(uint8_t *flash_ptr, size_t size)
 {
    uint8 buffer[512];
    uint8 numberOfBlocks = 0;
    nes_t *machine;
-   FILE *file;
    uint16 i, temp;
+   uint8_t *ptr = flash_ptr;
+
+   if(size < 24000) {
+      return -1;
+   }
 
    /* get the pointer to our NES machine context */
    machine = nes_getptr();
 
-   if (!(file = fopen(fn, "wb")))
-   {
-       MESSAGE_ERROR("state_save: file '%s' could not be opened.\n", fn);
-       return -1; //goto _error;
-   }
+   // MESSAGE_INFO("state_save: file '%s' opened.\n", fn);
 
-   MESSAGE_INFO("state_save: file '%s' opened.\n", fn);
-
-   _fwrite("SNSS\x00\x00\x00\x05", 8);
+   _fwrite("SNSS\x00\x00\x00\x05", 8); // 8
 
 
    /****************************************************/
@@ -99,7 +92,7 @@ int state_save(char* fn)
    MESSAGE_INFO("  - Saving base block\n");
 
    // SnssBlockHeader
-   _fwrite("BASR\x00\x00\x00\x01\x00\x00\x19\x31", 12);
+   _fwrite("BASR\x00\x00\x00\x01\x00\x00\x19\x31", 12); // 20
    numberOfBlocks++;
 
    buffer[0] = machine->cpu->a_reg;
@@ -113,11 +106,11 @@ int state_save(char* fn)
    buffer[7] = machine->ppu->ctrl0;
    buffer[8] = machine->ppu->ctrl1;
 
-   _fwrite(&buffer, 9);
+   _fwrite(&buffer, 9); // 29
 
-   _fwrite(machine->mem->ram, 0x800);
-   _fwrite(machine->ppu->oam, 0x100);
-   _fwrite(machine->ppu->nametab, 0x1000);
+   _fwrite(machine->mem->ram, 0x800); // 2077
+   _fwrite(machine->ppu->oam, 0x100); // 2333
+   _fwrite(machine->ppu->nametab, 0x1000); // 6429
 
    /* Mask off priority color bits */
    for (i = 0; i < 32; i++)
@@ -135,7 +128,7 @@ int state_save(char* fn)
    buffer[38] = machine->ppu->oam_addr;
    buffer[39] = machine->ppu->tile_xofs;
 
-   _fwrite(&buffer, 40);
+   _fwrite(&buffer, 40); // 6469
 
 
    /****************************************************/
@@ -145,10 +138,10 @@ int state_save(char* fn)
       MESSAGE_INFO("  - Saving VRAM block\n");
 
       // SnssBlockHeader
-      _fwrite("VRAM\x00\x00\x00\x01\x00\x00\x20\x00", 12);
+      _fwrite("VRAM\x00\x00\x00\x01\x00\x00\x20\x00", 12); // 6481
       numberOfBlocks++;
 
-      _fwrite(machine->rominfo->vram, 0x2000);
+      _fwrite(machine->rominfo->vram, 0x2000); // 14673
    }
 
 
@@ -161,10 +154,10 @@ int state_save(char* fn)
       // Byte 13 = SRAM enabled (unused)
       // Length is always $2001
       // SnssBlockHeader
-      _fwrite("SRAM\x00\x00\x00\x01\x00\x00\x20\x01\x01", 13);
+      _fwrite("SRAM\x00\x00\x00\x01\x00\x00\x20\x01\x01", 13); // 14686
       numberOfBlocks++;
 
-      _fwrite(machine->rominfo->sram, 0x2000);
+      _fwrite(machine->rominfo->sram, 0x2000); // 22878
    }
 
 
@@ -173,7 +166,7 @@ int state_save(char* fn)
    MESSAGE_INFO("  - Saving sound block\n");
 
    // SnssBlockHeader
-   _fwrite("SOUN\x00\x00\x00\x01\x00\x00\x00\x16", 12);
+   _fwrite("SOUN\x00\x00\x00\x01\x00\x00\x00\x16", 12); // 22890
    numberOfBlocks++;
 
    buffer[0x00] = machine->apu->rectangle[0].regs[0];
@@ -196,7 +189,7 @@ int state_save(char* fn)
    buffer[0x13] = machine->apu->dmc.regs[3];
    buffer[0x15] = machine->apu->control_reg;
 
-   _fwrite(&buffer, 0x16);
+   _fwrite(&buffer, 0x16); // 22912
 
 
    /****************************************************/
@@ -242,10 +235,12 @@ int state_save(char* fn)
    /****************************************************/
 
    // Update number of blocks
-   fseek(file, 7, SEEK_SET);
-   fwrite(&numberOfBlocks, 1, 1, file);
+   ptr = flash_ptr + 7;
+   // fseek(file, 7, SEEK_SET);
+   ptr[0] = numberOfBlocks;
+   // fwrite(&numberOfBlocks, 1, 1, file);
 
-   fclose(file);
+   // fclose(file);
 
    MESSAGE_INFO("state_save: Game %d saved!\n", save_slot);
 
@@ -253,14 +248,13 @@ int state_save(char* fn)
 
 _error:
    MESSAGE_ERROR("state_save: Save failed!\n");
-   fclose(file);
+   // fclose(file);
    return -1;
 }
 
-int state_load(char* fn)
+int state_load(uint8_t* flash_ptr, size_t size)
 {
    uint8 buffer[512];
-   FILE *file;
    nes_t *machine;
    int blk, i;
 
@@ -269,29 +263,31 @@ int state_load(char* fn)
    uint32 blockLength;
    uint32 nextBlock = 8;
 
-   machine = nes_getptr();
+   uint8_t *ptr = flash_ptr;
 
-   if (!(file = fopen(fn, "rb")))
-   {
-       MESSAGE_ERROR("state_load: file '%s' could not be opened.\n", fn);
-       return -1; //goto _error;
-  }
+
+   if(size < 24000) {
+      return -1;
+   }
+
+   machine = nes_getptr();
 
    _fread(buffer, 8);
 
    if (memcmp(buffer, "SNSS", 4) != 0)
    {
-      MESSAGE_ERROR("state_load: file '%s' is not a save file.\n", fn);
+      MESSAGE_ERROR("state_load: file is not a save file.\n");
       goto _error;
    }
 
    numberOfBlocks = swap32(*((uint32*)&buffer[4]));
 
-   MESSAGE_INFO("state_load: file '%s' opened, blocks=%d.\n", fn, numberOfBlocks);
+   MESSAGE_INFO("state_load: file opened, blocks=%d.\n", numberOfBlocks);
 
    for (blk = 0; blk < numberOfBlocks; blk++)
    {
-      fseek(file, nextBlock, SEEK_SET);
+      ptr = flash_ptr + nextBlock;
+      // fseek(file, nextBlock, SEEK_SET);
       _fread(buffer, 12);
 
       blockVersion = swap32(*((uint32*)&buffer[4]));
@@ -429,7 +425,7 @@ int state_load(char* fn)
    }
 
    /* close file, we're done */
-   fclose(file);
+   // fclose(file);
 
    MESSAGE_INFO("state_load: Game %d restored\n", save_slot);
 
@@ -437,7 +433,7 @@ int state_load(char* fn)
 
 _error:
    MESSAGE_ERROR("state_load: Load failed!\n");
-   fclose(file);
+   // fclose(file);
    // abort();
    return -1;
 }

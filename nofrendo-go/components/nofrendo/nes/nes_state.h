@@ -36,7 +36,7 @@ typedef struct
 } SnssBlockHeader;
 
 extern void state_setslot(int slot);
-extern int state_load(char* fn);
-extern int state_save(char* fn);
+int state_load(uint8_t* flash_ptr, size_t size);
+int state_save(uint8_t *flash_ptr, size_t size);
 
 #endif /* _NESSTATE_H_ */
