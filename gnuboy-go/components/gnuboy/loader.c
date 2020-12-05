@@ -183,9 +183,13 @@ static svar_t svars[] =
 
 
 #define BANK_SIZE 0x4000
-#define BANK_NUM  32
 
+#ifdef GB_CACHE_ROM
+
+#define BANK_NUM  32
 uint8_t banks[BANK_NUM][BANK_SIZE] __attribute__((section (".emulator_data")));
+
+#endif
 
 // TODO: Revisit this later as memory might run out when loading
 
@@ -193,6 +197,7 @@ int IRAM_ATTR rom_loadbank(short bank)
 {
 	const size_t OFFSET = bank * BANK_SIZE;
 
+#ifdef GB_CACHE_ROM
 	printf("bank_load: loading bank %d.\n", bank);
 	rom.bank[bank] = banks[bank % BANK_NUM];
 	if (rom.bank[bank] == NULL) {
@@ -209,22 +214,18 @@ int IRAM_ATTR rom_loadbank(short bank)
 
 	// TODO: check bounds (famous last words :D)
 	memcpy(rom.bank[bank], &ROM_DATA[OFFSET], BANK_SIZE);
-
+#else
+	// uncached
+	rom.bank[bank] = &ROM_DATA[OFFSET];
+#endif
 	return 0;
 }
 
-uint8_t sram[8192] __attribute__((section (".emulator_data")));
+//uint8_t sram[8192];
+uint8_t sram[8192 * 16] __attribute__((section (".emulator_data")));
 
 int rom_load()
 {
-    // printf("loader: Loading file: %s\n", romfile);
-
-	// fpRomFile = fopen(romfile, "rb");
-	// if (fpRomFile == NULL)
-	// {
-	// 	emu_die("ROM fopen failed");
-	// }
-
 	rom_loadbank(0);
 
 	byte *header = rom.bank[0];
@@ -277,7 +278,13 @@ int rom_load()
 	ram.sbank = sram;
 	ram.sram_dirty = 0;
 
-	memset(ram.sbank, 0xff, 8192 * mbc.ramsize);
+	if (8192 * mbc.ramsize > sizeof(sram)) {
+		printf("loader: mbc.ramsize=%d, we only have %d of allocated sram\n",
+			8192 * mbc.ramsize, sizeof(sram));
+		Error_Handler();
+	}
+
+	memset(ram.sbank, 0xff, sizeof(sram));
 	memset(ram.ibank, 0xff, 4096 * 8);
 
 	mbc.rombank = 1;
