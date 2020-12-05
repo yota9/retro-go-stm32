@@ -68,7 +68,7 @@
 #define  PPU_MAXSPRITE        8
 
 /* Predefined input palette count */
-#define  PPU_PAL_COUNT        6
+#define  PPU_PAL_COUNT        7
 
 /* Some mappers need to hook into the PPU's internals */
 typedef void (*ppu_latchfunc_t)(uint32 address, uint8 value);
