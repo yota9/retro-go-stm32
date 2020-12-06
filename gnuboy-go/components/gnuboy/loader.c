@@ -76,7 +76,18 @@ static const byte ramsize_table[256] =
 	4 /* FIXME - what value should this be?! */
 };
 
+#define _fread(buffer, size, nmemb)                       \
+	do {                                                  \
+		memcpy((buffer), (ptr), (size) * (nmemb));                \
+		ptr += size;                                      \
+	} while(0)
 
+// TODO: Jeopardy: What is bounds checking
+#define _fwrite(_buffer, _size, _nmemb)                   \
+	do {                                                  \
+		memcpy((ptr), (_buffer), (_size) * (_nmemb));     \
+		ptr += _size;                                     \
+	} while(0)
 
 #ifdef IS_LITTLE_ENDIAN
 #define LIL(x) (x)
@@ -328,7 +339,7 @@ int sram_load()
 	// if ((f = fopen(sramfile, "rb")))
 	// {
 	// 	printf("sram_load: Loading SRAM\n");
-	// 	fread(ram.sbank, 8192, mbc.ramsize, f);
+	// 	_fread(ram.sbank, 8192, mbc.ramsize, f);
 	// 	rtc_load(f);
 	// 	fclose(f);
 	// 	ret = 0;
@@ -351,7 +362,7 @@ int sram_save()
 	// if ((f = fopen(sramfile, "wb")))
 	// {
 	// 	printf("sram_load: Saving SRAM\n");
-	// 	fwrite(ram.sbank, 8192, mbc.ramsize, f);
+	// 	_fwrite(ram.sbank, 8192, mbc.ramsize, f);
 	// 	rtc_save(f);
 	// 	fclose(f);
 	// 	ret = 0;
@@ -362,91 +373,89 @@ int sram_save()
 }
 
 
-int state_save(char *name)
+static uint8_t scratch_buf[4096];
+
+int state_save(uint8_t *flash_ptr, size_t size)
 {
-	FILE *f;
+	uint8_t *ptr = flash_ptr;
+	uint8_t *buf = scratch_buf;
 
-	if ((f = fopen(name, "wb")))
-	{
-		int i;
-		byte* buf = malloc(4096);
-		if (!buf) abort();
-
-		un32 (*header)[2] = (un32 (*)[2])buf;
-		un32 d = 0;
-		int irl = hw.cgb ? 8 : 2;
-		int vrl = hw.cgb ? 4 : 2;
-		int srl = mbc.ramsize << 1;
-
-		ver = 0x106;
-		iramblock = 1;
-		vramblock = 1+irl;
-		sramblock = 1+irl+vrl;
-		wavofs = 4096 - 784;
-		hiofs = 4096 - 768;
-		palofs = 4096 - 512;
-		oamofs = 4096 - 256;
-		memset(buf, 0, 4096);
-
-		for (i = 0; svars[i].len > 0; i++)
-		{
-			header[i][0] = *(un32 *)svars[i].key;
-			switch (svars[i].len)
-			{
-			case 1:
-				d = *(byte *)svars[i].ptr;
-				break;
-			case 2:
-				d = *(un16 *)svars[i].ptr;
-				break;
-			case 4:
-				d = *(un32 *)svars[i].ptr;
-				break;
-			}
-			header[i][1] = LIL(d);
-		}
-		header[i][0] = header[i][1] = 0;
-
-		memcpy(buf+hiofs, ram.hi, sizeof ram.hi);
-		memcpy(buf+palofs, lcd.pal, sizeof lcd.pal);
-		memcpy(buf+oamofs, lcd.oam.mem, sizeof lcd.oam);
-		memcpy(buf+wavofs, snd.wave, sizeof snd.wave);
-
-		fseek(f, 0, SEEK_SET);
-		fwrite(buf, 4096, 1, f);
-
-		fseek(f, iramblock<<12, SEEK_SET);
-		fwrite(ram.ibank, 4096, irl, f);
-
-		fseek(f, vramblock<<12, SEEK_SET);
-		fwrite(lcd.vbank, 4096, vrl, f);
-
-		fseek(f, sramblock<<12, SEEK_SET);
-
-		byte* tmp = (byte*)ram.sbank;
-		for (int j = 0; j < srl; ++j)
-		{
-			memcpy(buf, (void*)tmp, 4096);
-			size_t count = fwrite(buf, 4096, 1, f);
-			printf("state_save: wrote sram addr=%p, size=0x%x, count=%d\n", (void*)tmp, 4096, count);
-			tmp += 4096;
-		}
-
-		free(buf);
-		fclose(f);
-		return 0;
+	if(size < 24000) {
+		return -1;
 	}
 
-	return -1;
+	int i;
+
+	un32 (*header)[2] = (un32 (*)[2])buf;
+	un32 d = 0;
+	int irl = hw.cgb ? 8 : 2;
+	int vrl = hw.cgb ? 4 : 2;
+	int srl = mbc.ramsize << 1;
+
+	ver = 0x106;
+	iramblock = 1;
+	vramblock = 1+irl;
+	sramblock = 1+irl+vrl;
+	wavofs = 4096 - 784;
+	hiofs = 4096 - 768;
+	palofs = 4096 - 512;
+	oamofs = 4096 - 256;
+	memset(buf, 0, 4096);
+
+	for (i = 0; svars[i].len > 0; i++)
+	{
+		header[i][0] = *(un32 *)svars[i].key;
+		switch (svars[i].len)
+		{
+		case 1:
+			d = *(byte *)svars[i].ptr;
+			break;
+		case 2:
+			d = *(un16 *)svars[i].ptr;
+			break;
+		case 4:
+			d = *(un32 *)svars[i].ptr;
+			break;
+		}
+		header[i][1] = LIL(d);
+	}
+	header[i][0] = header[i][1] = 0;
+
+	memcpy(buf+hiofs, ram.hi, sizeof ram.hi);
+	memcpy(buf+palofs, lcd.pal, sizeof lcd.pal);
+	memcpy(buf+oamofs, lcd.oam.mem, sizeof lcd.oam);
+	memcpy(buf+wavofs, snd.wave, sizeof snd.wave);
+
+	ptr = flash_ptr + 0;
+	_fwrite(buf, 4096, 1);
+
+	ptr = flash_ptr + (iramblock<<12);
+	_fwrite(ram.ibank, 4096, irl);
+
+	ptr = flash_ptr + (vramblock<<12);
+	_fwrite(lcd.vbank, 4096, vrl);
+
+	ptr = flash_ptr + (sramblock<<12);
+
+	byte* tmp = (byte*)ram.sbank;
+	for (int j = 0; j < srl; ++j)
+	{
+		memcpy(buf, (void*)tmp, 4096);
+		_fwrite(buf, 4096, 1);
+		printf("state_save: wrote sram addr=%p, size=0x%x\n", (void*)tmp, 4096);
+		tmp += 4096;
+	}
+
+	return 0;
 }
 
 
-int state_load(char *name)
+int state_load(uint8_t *flash_ptr, size_t size)
 {
-	
+	uint8_t *ptr = flash_ptr;
+	uint8_t *buf = scratch_buf;
+
 	int i, j;
-	byte* buf = malloc(4096);
-	if (!buf) abort();
 
 	un32 (*header)[2] = (un32 (*)[2])buf;
 	un32 d;
@@ -456,7 +465,7 @@ int state_load(char *name)
 
 	ver = hiofs = palofs = oamofs = wavofs = 0;
 
-	memcpy(buf, ROM_DATA, 4096);
+	_fread(buf, 4096, 1);
 
 	for (j = 0; header[j][0]; j++)
 	{
@@ -492,27 +501,25 @@ int state_load(char *name)
 	vramblock = 1+irl;
 	sramblock = 1+irl+vrl;
 
-	memcpy(ram.ibank, &ROM_DATA[iramblock << 12], 4096);
+	ptr = flash_ptr + (iramblock<<12);
+	_fread(ram.ibank, 4096, irl);
 
-	// fseek(f, vramblock<<12, SEEK_SET);
-	memcpy(lcd.vbank, &ROM_DATA[vramblock<<12], 4096);
+	ptr = flash_ptr + (vramblock<<12);
+	_fread(lcd.vbank, 4096, vrl);
 
-	// fseek(f, sramblock<<12, SEEK_SET);
-	// size_t count = fread(ram.sbank, 4096, srl, f);
-	// TODO: This looks like potential OOB read.. 
-	memcpy(ram.sbank, &ROM_DATA[sramblock << 12], 4096);
+	ptr = flash_ptr + (vramblock<<12);
 
-	printf("state_load: read sram addr=%p, size=0x%x, count=%d\n", (void*)ram.sbank, 4096 * srl);
+	_fread(ram.sbank, 4096, srl);
 
-	free(buf);
-	// fclose(f);
+	printf("state_load: read sram addr=%p, size=0x%x\n", (void*)ram.sbank, 4096 * srl);
+
 	pal_dirty();
 	sound_dirty();
 	mem_updatemap();
-	return 0;
 
-	return -1;
+	return 0;
 }
+
 
 
 void loader_unload()
