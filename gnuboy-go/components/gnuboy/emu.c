@@ -50,7 +50,6 @@ void emu_reset()
 void IRAM_ATTR emu_run(bool draw)
 {
     fb.enabled = draw;
-    pcm.pos = 0;
 
     /* FIXME: djudging by the time specified this was intended
     to emulate through vblank phase which is handled at the

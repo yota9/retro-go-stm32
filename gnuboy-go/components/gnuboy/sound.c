@@ -43,6 +43,7 @@ static DRAM_ATTR const int freqtab[8] =
 	(1<<14)/7
 };
 
+extern void pcm_submit();
 struct pcm pcm;
 struct snd snd;
 
@@ -239,8 +240,9 @@ void IRAM_ATTR sound_mix()
 		{
 			if (pcm.pos >= pcm.len)
 			{
-				//pcm_submit();
-				printf("sound_mix: buffer overflow. (pcm.len=%d)\n", pcm.len);
+				pcm_submit();
+				pcm.pos = 0;
+				// printf("sound_mix: buffer overflow. (pcm.len=%d)\n", pcm.len);
 				//abort();
 			}
 			else if (pcm.stereo)
