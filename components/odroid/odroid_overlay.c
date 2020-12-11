@@ -574,7 +574,7 @@ int odroid_overlay_game_menu()
         #else
         // {40, "Netplay", "", 0, NULL},
         #endif
-        {50, "Tools", "", 1, NULL},
+        // {50, "Tools", "", 1, NULL},
         {100, "Quit", "", 1, NULL},
         ODROID_DIALOG_CHOICE_LAST
     };
