@@ -48,7 +48,8 @@ static void rom_savesram(rominfo_t *rominfo)
    if (rominfo->flags & ROM_FLAG_BATTERY)
    {
       strncpy(fn, rominfo->filename, PATH_MAX + 1);
-      osd_newextension(fn, ".sav");
+      char *ext = strrchr(fn, '.');
+      if (ext) strcpy(ext, ".sav");
 
       if ((fp = fopen(fn, "wb")))
       {
@@ -70,7 +71,8 @@ static void rom_loadsram(rominfo_t *rominfo)
    if (rominfo->flags & ROM_FLAG_BATTERY)
    {
       strncpy(fn, rominfo->filename, PATH_MAX);
-      osd_newextension(fn, ".sav");
+      char *ext = strrchr(fn, '.');
+      if (ext) strcpy(ext, ".sav");
 
       if ((fp = fopen(fn, "rb")))
       {

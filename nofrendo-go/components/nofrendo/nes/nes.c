@@ -85,8 +85,6 @@ INLINE void renderframe()
 /* main emulation loop */
 void nes_emulate(void)
 {
-   const int audioSamples = nes.apu->sample_rate / nes.refresh_rate;
-
    // Discard the garbage frames
    renderframe();
    renderframe();
@@ -104,9 +102,7 @@ void nes_emulate(void)
          // nes.vidbuf = (nes.vidbuf == framebuffers[1]) ? framebuffers[0] : framebuffers[1];
       }
 
-      osd_audioframe(audioSamples);
-
-      osd_wait_for_vsync();
+      osd_vsync();
    }
 }
 

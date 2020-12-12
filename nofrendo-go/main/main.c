@@ -28,12 +28,13 @@ static odroid_video_frame_t *currentUpdate = &update1;
 static odroid_video_frame_t *previousUpdate = NULL;
 
 static int16_t audioBuffer[AUDIO_BUFFER_LENGTH * 2];
-static int32_t pendingSamples = 0;
 
 static odroid_gamepad_state_t joystick1;
 static odroid_gamepad_state_t joystick2;
 static odroid_gamepad_state_t *localJoystick = &joystick1;
 static odroid_gamepad_state_t *remoteJoystick = &joystick2;
+
+static uint samplesPerFrame = 0;
 
 static bool overscan = true;
 static uint autocrop = false;
@@ -203,11 +204,6 @@ static bool palette_update_cb(odroid_dialog_choice_t *option, odroid_dialog_even
    return event == ODROID_DIALOG_ENTER;
 }
 
-char *osd_newextension(char *string, const char *ext)
-{
-   return string;
-}
-
 size_t osd_getromdata(unsigned char **data)
 {
 	*data = (unsigned char*)romData;
@@ -233,6 +229,7 @@ void osd_loadstate()
 
    nes = nes_getptr();
    frameTime = get_frame_time(nes->refresh_rate);
+   samplesPerFrame = AUDIO_SAMPLE_RATE / nes->refresh_rate;
 }
 
 void osd_logprint(int type, char *string)
@@ -252,8 +249,8 @@ void osd_shutdown()
    //
 }
 
-// Sleep until it's time for next frame
-void osd_wait_for_vsync()
+// We've reached vsync. We need to process audio and sleep if we ran too fast
+void osd_vsync()
 {
    static uint skipFrames = 0;
    static uint lastSyncTime = 0;
@@ -277,34 +274,13 @@ void osd_wait_for_vsync()
    nes->drawframe = (skipFrames == 0);
 
    // Use audio to throttle emulation
-   if (pendingSamples)
+   if (!app->speedupEnabled)
    {
-      odroid_audio_submit(audioBuffer, pendingSamples);
-      pendingSamples = 0;
+      apu_process(audioBuffer, samplesPerFrame, true);
+      odroid_audio_submit(audioBuffer, samplesPerFrame);
    }
 
    lastSyncTime = get_elapsed_time();
-}
-
-/*
-** Audio
-*/
-void osd_audioframe(int audioSamples)
-{
-   if (app->speedupEnabled)
-      return;
-
-   apu_process(audioBuffer, audioSamples); //get audio data
-
-   //16 bit mono -> 32-bit (16 bit r+l)
-   for (int i = audioSamples - 1; i >= 0; --i)
-   {
-      int16_t sample = audioBuffer[i];
-      audioBuffer[i*2] = sample;
-      audioBuffer[i*2+1] = sample;
-   }
-
-   pendingSamples = audioSamples;
 }
 
 /*
