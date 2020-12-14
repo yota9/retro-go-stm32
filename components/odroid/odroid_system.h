@@ -191,4 +191,6 @@ static inline uint get_elapsed_time_since(uint start)
 // #define rg_alloc(...)  rg_alloc_(..., __FILE__, __FUNCTION__)
 
 void *rg_alloc(size_t size, uint32_t caps);
+void *rg_calloc(size_t nmemb, size_t size);
 void rg_free(void *ptr);
+void *rg_realloc(void *ptr, size_t size);
