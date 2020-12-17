@@ -82,6 +82,11 @@ tab_t *gui_add_tab(const char *name, const void *logo, const void *header, void 
 
 void gui_init_tab(tab_t *tab)
 {
+    if(!tab) {
+        while(1) {
+            
+        }
+    }
     if (tab->initialized)
         return;
 

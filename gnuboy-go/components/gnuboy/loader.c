@@ -5,7 +5,6 @@
 #include <ctype.h>
 
 #include "gb_rom.h"
-#include "rom_info.h"
 #include "defs.h"
 #include "regs.h"
 #include "mem.h"
