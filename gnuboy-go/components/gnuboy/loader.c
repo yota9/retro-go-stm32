@@ -235,7 +235,7 @@ int IRAM_ATTR rom_loadbank(short bank)
 //uint8_t sram[8192];
 uint8_t sram[8192 * 16] __attribute__((section (".emulator_data")));
 
-int rom_load()
+static int gb_rom_load()
 {
 	rom_loadbank(0);
 
@@ -375,7 +375,7 @@ int sram_save()
 
 static uint8_t scratch_buf[4096];
 
-int state_save(uint8_t *flash_ptr, size_t size)
+int gb_state_save(uint8_t *flash_ptr, size_t size)
 {
 	uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
@@ -442,7 +442,7 @@ int state_save(uint8_t *flash_ptr, size_t size)
 	{
 		memcpy(buf, (void*)tmp, 4096);
 		_fwrite(buf, 4096, 1);
-		printf("state_save: wrote sram addr=%p, size=0x%x\n", (void*)tmp, 4096);
+		printf("gb_state_save: wrote sram addr=%p, size=0x%x\n", (void*)tmp, 4096);
 		tmp += 4096;
 	}
 
@@ -450,7 +450,7 @@ int state_save(uint8_t *flash_ptr, size_t size)
 }
 
 
-int state_load(uint8_t *flash_ptr, size_t size)
+int gb_state_load(uint8_t *flash_ptr, size_t size)
 {
 	uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
@@ -541,6 +541,6 @@ void loader_unload()
 
 void loader_init(char *s)
 {
-	rom_load();
+	gb_rom_load();
 	// sram_load();
 }

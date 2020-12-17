@@ -13,7 +13,7 @@
 
 struct mbc mbc;
 struct rom rom;
-struct ram ram;
+struct ram ram __attribute__((section (".lcd")));
 
 
 /*

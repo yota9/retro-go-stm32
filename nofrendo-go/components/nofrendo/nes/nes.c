@@ -31,8 +31,8 @@
 
 #define NES_OVERDRAW (8)
 
-DRAM_ATTR static uint8_t framebuffer_data[2][(NES_SCREEN_WIDTH + NES_OVERDRAW * 2) * NES_SCREEN_HEIGHT];
-DRAM_ATTR static uint8_t bitmap_data[2][sizeof(bitmap_t) + (sizeof(uint8 *) * NES_SCREEN_HEIGHT)];
+static uint8_t framebuffer_data[2][(NES_SCREEN_WIDTH + NES_OVERDRAW * 2) * NES_SCREEN_HEIGHT]   __attribute__((section (".lcd")));
+static uint8_t bitmap_data[2][sizeof(bitmap_t) + (sizeof(uint8 *) * NES_SCREEN_HEIGHT)]   __attribute__((section (".lcd")));;
 static bitmap_t *framebuffers[2];
 static nes_t nes;
 

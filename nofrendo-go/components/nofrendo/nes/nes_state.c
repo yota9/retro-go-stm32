@@ -67,7 +67,7 @@ void state_setslot(int slot)
    }
 }
 
-int state_save(uint8_t *flash_ptr, size_t size)
+int nes_state_save(uint8_t *flash_ptr, size_t size)
 {
    uint8 buffer[512];
    uint8 numberOfBlocks = 0;
@@ -252,7 +252,7 @@ _error:
    return -1;
 }
 
-int state_load(uint8_t* flash_ptr, size_t size)
+int nes_state_load(uint8_t* flash_ptr, size_t size)
 {
    uint8 buffer[512];
    nes_t *machine;
