@@ -4,7 +4,6 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "gb_rom.h"
 #include "defs.h"
 #include "regs.h"
 #include "mem.h"
@@ -13,6 +12,8 @@
 #include "rtc.h"
 #include "cpu.h"
 #include "sound.h"
+
+#include "rom_manager.h"
 
 #include <odroid_system.h>
 
