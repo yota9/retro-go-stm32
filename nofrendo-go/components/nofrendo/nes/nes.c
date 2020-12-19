@@ -29,9 +29,10 @@
 #include <osd.h>
 #include <nes.h>
 
+#include "gw_lcd.h"
+
 #define NES_OVERDRAW (8)
 
-static uint8_t framebuffer_data[2][(NES_SCREEN_WIDTH + NES_OVERDRAW * 2) * NES_SCREEN_HEIGHT]   __attribute__((section (".lcd")));
 static uint8_t bitmap_data[2][sizeof(bitmap_t) + (sizeof(uint8 *) * NES_SCREEN_HEIGHT)]   __attribute__((section (".lcd")));;
 static bitmap_t *framebuffers[2];
 static nes_t nes;
@@ -100,7 +101,7 @@ void nes_emulate(void)
       if (nes.drawframe)
       {
          osd_blitscreen(nes.vidbuf);
-         nes.vidbuf = (nes.vidbuf == framebuffers[1]) ? framebuffers[0] : framebuffers[1];
+         // nes.vidbuf = (nes.vidbuf == framebuffers[1]) ? framebuffers[0] : framebuffers[1];
       }
 
       osd_audioframe(audioSamples);
@@ -221,7 +222,7 @@ void nes_setregion(region_t region)
 
 void bmp_init(bitmap_t *bitmap, int index, int width , int height, int overdraw)
 {
-   bitmap->data = framebuffer_data[index];
+   bitmap->data = emulator_framebuffer;
    bitmap->width = NES_SCREEN_WIDTH;
    bitmap->height = NES_SCREEN_HEIGHT;
    bitmap->pitch = NES_SCREEN_WIDTH + (overdraw * 2);
