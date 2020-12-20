@@ -31,7 +31,7 @@
 
 #include "gw_lcd.h"
 
-#define NES_OVERDRAW (0)
+#define NES_OVERDRAW (8)
 
 static uint8_t bitmap_data[2][sizeof(bitmap_t) + (sizeof(uint8 *) * NES_SCREEN_HEIGHT)]   __attribute__((section (".lcd")));;
 static bitmap_t *framebuffers[2];
