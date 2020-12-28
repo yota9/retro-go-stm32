@@ -382,6 +382,7 @@ static uint8_t scratch_buf[4096];
 
 int gb_state_save(uint8_t *flash_ptr, size_t size)
 {
+	uint8_t *base_ptr = flash_ptr;
 	uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
 
@@ -448,7 +449,7 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 
 	printf("gb_state_save: done. ptr=%p\n", ptr);
 
-	return 0;
+	return ptr - base_ptr;
 }
 
 
