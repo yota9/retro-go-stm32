@@ -76,17 +76,18 @@ static const byte ramsize_table[] =
 	1, 1, 1, 4, 16, 8,
 };
 
-#define _fread(buffer, size, nmemb)                       \
-	do {                                                  \
+#define _fread(buffer, size, nmemb)                               \
+	do {                                                          \
 		memcpy((buffer), (ptr), (size) * (nmemb));                \
-		ptr += size;                                      \
+		ptr += (size) * (nmemb);                                  \
 	} while(0)
 
 // TODO: Jeopardy: What is bounds checking
-#define _fwrite(_buffer, _size, _nmemb)                   \
-	do {                                                  \
-		memcpy((ptr), (_buffer), (_size) * (_nmemb));     \
-		ptr += _size;                                     \
+#define _fwrite(_buffer, _size, _nmemb)                           \
+	do {                                                          \
+		printf("_fwrite(0x%x, %d)\n", (ptr), (_size) * (_nmemb)); \
+		memcpy((ptr), (_buffer), (_size) * (_nmemb));             \
+		ptr += (_size) * (_nmemb);                                \
 	} while(0)
 
 #ifdef IS_LITTLE_ENDIAN
@@ -384,6 +385,8 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 	uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
 
+	printf("gb_state_save: base=0x%x\n", flash_ptr);
+
 	if(size < 24000) {
 		return -1;
 	}
@@ -430,16 +433,9 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 	memcpy(buf+oamofs, lcd.oam.mem, sizeof lcd.oam);
 	memcpy(buf+wavofs, snd.wave, sizeof snd.wave);
 
-	ptr = flash_ptr + 0;
 	_fwrite(buf, 4096, 1);
-
-	ptr = flash_ptr + (iramblock<<12);
 	_fwrite(ram.ibank, 4096, irl);
-
-	ptr = flash_ptr + (vramblock<<12);
 	_fwrite(lcd.vbank, 4096, vrl);
-
-	ptr = flash_ptr + (sramblock<<12);
 
 	byte* tmp = (byte*)ram.sbank;
 	for (int j = 0; j < srl; ++j)
@@ -449,6 +445,8 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 		printf("gb_state_save: wrote sram addr=%p, size=0x%x\n", (void*)tmp, 4096);
 		tmp += 4096;
 	}
+
+	printf("gb_state_save: done. ptr=%p\n", ptr);
 
 	return 0;
 }
@@ -505,14 +503,8 @@ int gb_state_load(uint8_t *flash_ptr, size_t size)
 	vramblock = 1+irl;
 	sramblock = 1+irl+vrl;
 
-	ptr = flash_ptr + (iramblock<<12);
 	_fread(ram.ibank, 4096, irl);
-
-	ptr = flash_ptr + (vramblock<<12);
 	_fread(lcd.vbank, 4096, vrl);
-
-	ptr = flash_ptr + (vramblock<<12);
-
 	_fread(ram.sbank, 4096, srl);
 
 	printf("state_load: read sram addr=%p, size=0x%x\n", (void*)ram.sbank, 4096 * srl);
