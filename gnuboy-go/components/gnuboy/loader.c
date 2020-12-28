@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "defs.h"
 #include "regs.h"
@@ -70,10 +71,9 @@ static const short romsize_table[256] =
 	/* 0, 0, 72, 80, 96  -- actual values but bad to use these! */
 };
 
-static const byte ramsize_table[256] =
+static const byte ramsize_table[] =
 {
-	1, 1, 1, 4, 16,
-	4 /* FIXME - what value should this be?! */
+	1, 1, 1, 4, 16, 8,
 };
 
 #define _fread(buffer, size, nmemb)                       \
@@ -257,7 +257,11 @@ static int gb_rom_load()
 
 	tmp = *((int*)(header + 0x0148));
 	mbc.romsize = romsize_table[(tmp & 0xff)];
-	mbc.ramsize = ramsize_table[((tmp >> 8) & 0xff)];
+
+	uint8_t ramsize_idx = ((tmp >> 8) & 0xff);
+	assert(ramsize_idx <= 5);
+	mbc.ramsize = ramsize_table[ramsize_idx];
+
 	rom.length = 16384 * mbc.romsize;
 
 	memcpy(&rom.checksum, header + 0x014E, 2);
