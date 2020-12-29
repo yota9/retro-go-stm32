@@ -156,7 +156,7 @@ label: op(b); break;
 #define EI ( IMA = 1 )
 #define DI ( cpu.halt = IMA = IME = 0 )
 
-#define COND_EXEC_INT(i, n) if (IF & i) { DI; PUSH(PC); IF &= ~i; PC = 0x40+((n)<<3); clen = 5; goto _skip; }
+#define COND_EXEC_INT(i, n) if (temp & i) { DI; PUSH(PC); R_IF &= ~i; PC = 0x40+((n)<<3); clen = 5; goto _skip; }
 
 
 struct cpu cpu;
@@ -285,7 +285,7 @@ next:
 	}
 
 	/* Handle interrupts */
-	if (IME && (IF & IE))
+	if (IME && (temp = R_IF & R_IE))
 	{
 		COND_EXEC_INT(IF_VBLANK, 0);
 		COND_EXEC_INT(IF_STAT, 1);
