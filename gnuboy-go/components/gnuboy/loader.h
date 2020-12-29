@@ -19,8 +19,8 @@ int rom_loadbank(short);
 int rom_load();
 int sram_load();
 int sram_save();
-int state_load(uint8_t *flash_ptr, size_t size);
-int state_save(uint8_t *flash_ptr, size_t size);
+int gb_state_load(const uint8_t *flash_ptr, size_t size);
+int gb_state_save(uint8_t *flash_ptr, size_t size);
 
 
 #endif

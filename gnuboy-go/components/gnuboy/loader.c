@@ -13,6 +13,7 @@
 #include "rtc.h"
 #include "cpu.h"
 #include "sound.h"
+#include "main.h"
 
 #include "rom_manager.h"
 
@@ -85,7 +86,7 @@ static const byte ramsize_table[] =
 // TODO: Jeopardy: What is bounds checking
 #define _fwrite(_buffer, _size, _nmemb)                           \
 	do {                                                          \
-		printf("_fwrite(0x%x, %d)\n", (ptr), (_size) * (_nmemb)); \
+		printf("_fwrite(%p, %d)\n", (ptr), (_size) * (_nmemb)); \
 		memcpy((ptr), (_buffer), (_size) * (_nmemb));             \
 		ptr += (_size) * (_nmemb);                                \
 	} while(0)
@@ -291,14 +292,10 @@ static int gb_rom_load()
 	// TODO: Revisit this later
 	// SRAM
 	// ram.sbank = rg_alloc(8192 * mbc.ramsize, MEM_FAST);
-	ram.sbank = sram;
+	ram.sbank = (unsigned char (*)[8192]) sram;
 	ram.sram_dirty = 0;
 
-	if (8192 * mbc.ramsize > sizeof(sram)) {
-		printf("loader: mbc.ramsize=%d, we only have %d of allocated sram\n",
-			8192 * mbc.ramsize, sizeof(sram));
-		Error_Handler();
-	}
+	assert((8192 * mbc.ramsize) <= sizeof(sram));
 
 	memset(ram.sbank, 0xff, sizeof(sram));
 	memset(ram.ibank, 0xff, 4096 * 8);
@@ -352,6 +349,7 @@ int sram_load()
 
 	// odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
 	// return ret;
+	return 0;
 }
 
 
@@ -375,6 +373,7 @@ int sram_save()
 
 	// odroid_system_spi_lock_release(SPI_LOCK_SDCARD);
 	// return ret;
+	return 0;
 }
 
 
@@ -386,7 +385,7 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 	uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
 
-	printf("gb_state_save: base=0x%x\n", flash_ptr);
+	printf("gb_state_save: base=%p\n", flash_ptr);
 
 	if(size < 24000) {
 		return -1;
@@ -453,9 +452,9 @@ int gb_state_save(uint8_t *flash_ptr, size_t size)
 }
 
 
-int gb_state_load(uint8_t *flash_ptr, size_t size)
+int gb_state_load(const uint8_t *flash_ptr, size_t size)
 {
-	uint8_t *ptr = flash_ptr;
+	const uint8_t *ptr = flash_ptr;
 	uint8_t *buf = scratch_buf;
 
 	int i, j;

@@ -245,7 +245,6 @@ int nes_init(region_t region, int sample_rate)
    nes.drawframe = true;
 
    /* Framebuffers */
-   int overdraw = 8;
    framebuffers[0] = (bitmap_t*)bitmap_data[0];
    framebuffers[1] = (bitmap_t*)bitmap_data[1];
    bmp_init(framebuffers[0], 0, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, NES_OVERDRAW);
