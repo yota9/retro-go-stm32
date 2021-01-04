@@ -225,10 +225,10 @@ void bmp_init(bitmap_t *bitmap, int index, int width , int height, int overdraw)
    bitmap->data = emulator_framebuffer;
    bitmap->width = NES_SCREEN_WIDTH;
    bitmap->height = NES_SCREEN_HEIGHT;
-   bitmap->pitch = NES_SCREEN_WIDTH + overdraw;
+   bitmap->pitch = NES_SCREEN_WIDTH + (overdraw * 2);
 
    for (int i = 0; i < height; i++)
-      bitmap->line[i] = bitmap->data + (bitmap->pitch * i);
+      bitmap->line[i] = bitmap->data + (bitmap->pitch * i) + overdraw;
 }
 
 
