@@ -68,11 +68,15 @@
 #endif
 
 #ifdef NOFRENDO_DEBUG
-// #define UNUSED(x)
+#ifndef UNUSED
+#  define UNUSED(x)
+#endif
 #define ASSERT(expr)        nofrendo_assert((int) (expr), __LINE__, __FILE__, NULL)
 #define MESSAGE_DEBUG(x...) nofrendo_printf(0, __FUNCTION__, "> " x)
 #else
-// #define UNUSED(x)           (void)x
+#ifndef UNUSED
+#  define UNUSED(x)           (void)x
+#endif
 #define ASSERT(expr)
 #define MESSAGE_DEBUG(x...)
 #endif
