@@ -28,6 +28,8 @@
 #ifndef _NOFRENDO_H_
 #define _NOFRENDO_H_
 
+#include <porting.h>
+
 #define APP_STRING     "Nofrendo"
 #define APP_VERSION    "3.0"
 
@@ -99,7 +101,6 @@ typedef  unsigned int   uint32;
 #include <stdlib.h>
 #include <stdint.h>
 #include <nes.h>
-#include <porting.h>
 
 /* End basic types */
 
