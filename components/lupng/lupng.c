@@ -1097,6 +1097,12 @@ static LU_INLINE int processPixels(PngInfoStruct *info)
         {
             status = deflate(&info->stream, flush);
 
+            if (status < 0)
+            {
+                LUPNG_WARN(info, "PNG: deflate failed (%d)!", status);
+                goto _error;
+            }
+
             if (info->stream.avail_out < BUF_SIZE)
             {
                 writeIdat(info, idatBuf, BUF_SIZE-info->stream.avail_out+4);
@@ -1292,7 +1298,7 @@ void luUserContextInitDefault(LuUserContext *userCtx)
 
     userCtx->writeProc=NULL;
     userCtx->writeProcUserPtr=NULL;
-    userCtx->compressionLevel=Z_DEFAULT_COMPRESSION;
+    userCtx->compressionLevel=0;
 
     userCtx->allocProc=internalMalloc;
     userCtx->allocProcUserPtr=NULL;
