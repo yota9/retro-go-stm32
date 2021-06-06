@@ -104,6 +104,8 @@ static const byte ramsize_table[] =
 #define NOSAVE { -1, "\0\0\0\0", 0 }
 #define END { 0, "\0\0\0\0", 0 }
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+
 typedef struct
 {
 	int len;
@@ -468,6 +470,21 @@ int gb_state_load(const uint8_t *flash_ptr, size_t size)
 	ver = hiofs = palofs = oamofs = wavofs = 0;
 
 	_fread(buf, 4096, 1);
+
+	// Sanity-check header
+	// Note: This was added because we don't store a header/checksum
+	// TODO: Add a magic value and checksum of the state save (it will break old saves though...)
+	for (j = 0; j <= ARRAY_SIZE(svars); j++)
+	{
+		if (header[j][0] == 0) {
+			break;
+		}
+	}
+
+	if (j > ARRAY_SIZE(svars)) {
+		printf("gb_state_load: Invalid state save, %d/%d entries\n", j, ARRAY_SIZE(svars));
+		return 0;
+	}
 
 	for (j = 0; header[j][0]; j++)
 	{
