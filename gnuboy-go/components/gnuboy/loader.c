@@ -474,14 +474,14 @@ int gb_state_load(const uint8_t *flash_ptr, size_t size)
 	// Sanity-check header
 	// Note: This was added because we don't store a header/checksum
 	// TODO: Add a magic value and checksum of the state save (it will break old saves though...)
-	for (j = 0; j <= ARRAY_SIZE(svars); j++)
+	for (j = 0; j < ARRAY_SIZE(svars) + 1; j++)
 	{
 		if (header[j][0] == 0) {
 			break;
 		}
 	}
 
-	if (j > ARRAY_SIZE(svars)) {
+	if (j != ARRAY_SIZE(svars) - 1) {
 		printf("gb_state_load: Invalid state save, %d/%d entries\n", j, ARRAY_SIZE(svars));
 		return 0;
 	}
