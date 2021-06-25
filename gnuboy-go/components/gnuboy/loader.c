@@ -269,12 +269,6 @@ static uint32_t cache_ts[_MAX_GB_ROM_BANK_IN_CACHE];
 	static uint32_t swap_count=0;
 #endif
 
-/* extern to LZ4 ASM function */
-#ifndef LINUX_EMU
-	//extern void  unlz4(const void *aSource, void *aDestination);
-	//extern void unlz4_len(const void *aSource, void *aDestination, uint32_t aLength);
-#endif
-
 /* Function to load bank dynamically from ROM LZ4 compressed
 the bank0 is always uncompressed */
 static void
@@ -352,11 +346,6 @@ rom_loadbank_cache(short bank)
 		/* LZ4 C Version */
 		lz4_depack(&GB_ROM_LZ4[gb_rom_lz4_bank_offset[bank]+LZ4_FRAME_SIZE],&GB_ROM_SRAM_CACHE[OFFSET],lz4_compressed_size);
 
-		/* LZ4 ASM Version */
-		#ifndef LINUX_EMU
-		//unlz4_len(&GB_ROM_LZ4[gb_rom_lz4_bank_offset[bank]+LZ4_FRAME_SIZE],&GB_ROM_SRAM_CACHE[OFFSET],lz4_compressed_size);
-		#endif
-
 		/* set the bank address to the right bank address in cache */
 		rom.bank[bank] = (unsigned char *)&GB_ROM_SRAM_CACHE[OFFSET];
 
@@ -428,11 +417,6 @@ void gb_loader_restore_cache() {
 
 			/* C version */
 			lz4_depack(&GB_ROM_LZ4[gb_rom_lz4_bank_offset[bank]+LZ4_FRAME_SIZE],&GB_ROM_SRAM_CACHE[OFFSET],lz4_compressed_size);
-
-			/* ASM version, limited to 64KB ?? */
-			#ifndef LINUX_EMU
-			//unlz4_len(&GB_ROM_LZ4[gb_rom_lz4_bank_offset[bank]+LZ4_FRAME_SIZE],&GB_ROM_SRAM_CACHE[OFFSET],lz4_compressed_size);
-			#endif
 		}
 	}
 }
