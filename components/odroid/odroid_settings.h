@@ -35,6 +35,9 @@ void odroid_settings_Backlight_set(int32_t value);
 int32_t odroid_settings_StartupApp_get();
 void odroid_settings_StartupApp_set(int32_t value);
 
+void* odroid_settings_StartupFile_get(void);
+void odroid_settings_StartupFile_set(void *value);
+
 ODROID_START_ACTION odroid_settings_StartAction_get();
 void odroid_settings_StartAction_set(ODROID_START_ACTION value);
 
