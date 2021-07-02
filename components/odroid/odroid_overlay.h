@@ -29,7 +29,7 @@ struct odroid_dialog_choice {
     const char *label;
     char *value;
     int  enabled;
-    bool (*update_cb)(odroid_dialog_choice_t *, odroid_dialog_event_t);
+    bool (*update_cb)(odroid_dialog_choice_t *, odroid_dialog_event_t, uint32_t repeat);
 };
 
 #define ODROID_DIALOG_CHOICE_LAST {0x0F0F0F0F, "LAST", "LAST", 0xFFFF, NULL}
