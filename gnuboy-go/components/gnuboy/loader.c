@@ -357,6 +357,7 @@ rom_loadbank_cache(short bank)
                 size_t n_decomp_bytes;
                 n_decomp_bytes = tinfl_decompress_mem_to_mem(&GB_ROM_SRAM_CACHE[OFFSET], BANK_SIZE, &GB_ROM_COMP[gb_rom_comp_bank_offset[bank]], ROM_DATA_LENGTH - gb_rom_comp_bank_offset[bank], 0);
                 assert(n_decomp_bytes != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
+                assert(n_decomp_bytes == BANK_SIZE);
                 break;
             }
         }
@@ -576,17 +577,17 @@ static void gb_rom_compress_load(){
         case COMPRESSION_DEFLATE: {
             tinfl_decompressor decomp;
             tinfl_status status;
-            uint32_t src_offset = 0;
+            size_t src_offset = 0;
 
             int flags = 0;
             flags |= TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
 
             for(bank_idx=0; src_offset < ROM_DATA_LENGTH; bank_idx++){
                 wdog_refresh();
-                uint32_t src_buf_size = ROM_DATA_LENGTH - src_offset; 
+                size_t src_buf_size = ROM_DATA_LENGTH - src_offset; 
                 tinfl_init(&decomp);
 
-                uint32_t dst_buf_size = available_size;
+                size_t dst_buf_size = available_size;
 
                 gb_rom_comp_bank_offset[bank_idx] = src_offset;
 
