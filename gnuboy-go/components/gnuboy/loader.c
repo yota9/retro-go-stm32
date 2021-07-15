@@ -24,7 +24,6 @@
 #endif
 
 #ifdef LINUX_EMU
-const uint32_t _GB_ROM_UNPACK_BUFFER_SIZE=512000;
 static uint8_t  _GB_ROM_UNPACK_BUFFER[512000];
 #endif
 
@@ -491,8 +490,12 @@ static void gb_rom_compress_load(){
 
     /* dest pointer to the ROM data in the internal RAM (raw) */
     unsigned char *dest = (unsigned char *)&_GB_ROM_UNPACK_BUFFER;
-    uint32_t available_size = (uint32_t)&_GB_ROM_UNPACK_BUFFER_SIZE;
 
+#ifdef LINUX_EMU
+    uint32_t available_size = sizeof(_GB_ROM_UNPACK_BUFFER);
+#else
+    uint32_t available_size = (uint32_t)&_GB_ROM_UNPACK_BUFFER_SIZE;
+#endif
     GB_ROM_COMP        = (unsigned char *)src;
     GB_ROM_SRAM_CACHE = (unsigned char *)dest;
 
