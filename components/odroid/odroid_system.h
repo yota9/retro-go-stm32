@@ -33,6 +33,20 @@
 
 typedef bool (*state_handler_t)(char *pathName);
 
+enum
+{
+    SPEEDUP_MIN = -3,
+    SPEEDUP_0_5x = -2,
+    SPEEDUP_0_75x = -1,
+    SPEEDUP_1x = 0,
+    SPEEDUP_1_25x,
+    SPEEDUP_1_5x,
+    SPEEDUP_2x,
+    SPEEDUP_3x,
+    SPEEDUP_MAX,
+};
+typedef int32_t emu_speedup_t;
+
 typedef struct
 {
      uint32_t id;
@@ -40,7 +54,7 @@ typedef struct
      const char *romPath;
      state_handler_t loadState;
      state_handler_t saveState;
-     int32_t speedupEnabled;
+     emu_speedup_t speedupEnabled;
      int32_t startAction;
 } rg_app_desc_t;
 
