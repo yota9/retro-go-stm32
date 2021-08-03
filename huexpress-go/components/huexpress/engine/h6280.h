@@ -72,19 +72,19 @@ typedef struct {
 #define AM_XFER     19			/* special 7-byte transfer addressing mode  */
 
 // CPU registers
-#define reg_pc CPU.reg_pc
-#define reg_a  CPU.reg_a
-#define reg_x  CPU.reg_x
-#define reg_y  CPU.reg_y
-#define reg_p  CPU.reg_p
-#define reg_s  CPU.reg_s
+#define reg_pc hu_CPU.reg_pc
+#define reg_a  hu_CPU.reg_a
+#define reg_x  hu_CPU.reg_x
+#define reg_y  hu_CPU.reg_y
+#define reg_p  hu_CPU.reg_p
+#define reg_s  hu_CPU.reg_s
 
 typedef signed char SBYTE;
 typedef unsigned char UBYTE;
 typedef signed short SWORD;
 typedef unsigned short UWORD;
 
-extern h6280_t CPU;
+extern h6280_t hu_CPU;
 extern operation_t optable_runtime[256];
 
 #endif

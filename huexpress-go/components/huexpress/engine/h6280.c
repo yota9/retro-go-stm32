@@ -11,7 +11,7 @@
 
 #define OPCODE(n, f) case n: f; break;
 
-h6280_t CPU;
+h6280_t hu_CPU;
 
 
 /**
