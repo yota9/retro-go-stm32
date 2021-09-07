@@ -28,7 +28,8 @@ static uint8_t  _GB_ROM_UNPACK_BUFFER[512000];
 #endif
 
 #include "lz4_depack.h"
-#include  "miniz.h"
+#include "miniz.h"
+#include "lzma.h"
 
 #include "rom_manager.h"
 
@@ -228,6 +229,7 @@ enum {
     COMPRESSION_NONE,
     COMPRESSION_LZ4,
     COMPRESSION_DEFLATE,
+    COMPRESSION_LZMA,
 };
 typedef uint8_t compression_t;
 
@@ -307,6 +309,14 @@ rom_loadbank_cache(short bank)
                 rom.bank[bank] = (unsigned char *)&GB_ROM_COMP[OFFSET];
                 break;
             }
+            case COMPRESSION_LZMA: {
+                assert(bank == 0);
+                OFFSET = gb_rom_comp_bank_offset[bank];
+                // No frame, will have to implement if we want more than just
+                // bank0 to be not compressed.
+                rom.bank[bank] = (unsigned char *)&GB_ROM_COMP[OFFSET];
+                break;
+            }
         }
 
 		#ifdef _TRACE_GB_CACHE
@@ -356,6 +366,17 @@ rom_loadbank_cache(short bank)
                 size_t n_decomp_bytes;
                 n_decomp_bytes = tinfl_decompress_mem_to_mem(&GB_ROM_SRAM_CACHE[OFFSET], BANK_SIZE, &GB_ROM_COMP[gb_rom_comp_bank_offset[bank]], ROM_DATA_LENGTH - gb_rom_comp_bank_offset[bank], 0);
                 assert(n_decomp_bytes != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
+                assert(n_decomp_bytes == BANK_SIZE);
+                break;
+            }
+            case COMPRESSION_LZMA: {
+                size_t n_decomp_bytes;
+                n_decomp_bytes = lzma_inflate(
+                        &GB_ROM_SRAM_CACHE[OFFSET],
+                        BANK_SIZE ,
+                        &GB_ROM_COMP[gb_rom_comp_bank_offset[bank]],
+                        ROM_DATA_LENGTH - gb_rom_comp_bank_offset[bank]
+                        );
                 assert(n_decomp_bytes == BANK_SIZE);
                 break;
             }
@@ -433,6 +454,16 @@ void gb_loader_restore_cache() {
                     assert(n_decomp_bytes != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
                 }
                 break;
+                case COMPRESSION_LZMA: {
+                    size_t n_decomp_bytes;
+                    n_decomp_bytes = lzma_inflate(
+                            &GB_ROM_SRAM_CACHE[OFFSET],
+                            BANK_SIZE,
+                            &GB_ROM_COMP[gb_rom_comp_bank_offset[bank]],
+                            ROM_DATA_LENGTH - gb_rom_comp_bank_offset[bank]
+                            );
+                }
+                break;
             }
 
 		}
@@ -484,6 +515,7 @@ static void gb_rom_compress_load(){
 
     if (memcmp(&src[0], LZ4_MAGIC, LZ4_MAGIC_SIZE) == 0) rom_comp_type = COMPRESSION_LZ4;
     else if(strcmp(ROM_EXT, "zopfli") == 0) rom_comp_type = COMPRESSION_DEFLATE;
+    else if(strcmp(ROM_EXT, "lzma") == 0) rom_comp_type = COMPRESSION_LZMA;
     else rom_comp_type = COMPRESSION_NONE;
 
     if(rom_comp_type == COMPRESSION_NONE) return;
@@ -610,6 +642,39 @@ static void gb_rom_compress_load(){
 
                 // src_buf_size now contains how many bytes of the src were transversed
                 src_offset += src_buf_size;
+            }
+            break;
+        }
+        case COMPRESSION_LZMA: {
+            size_t src_offset = BANK_SIZE;
+            unsigned char lzma_heap[LZMA_BUF_SIZE];
+            ISzAlloc allocs;
+            ELzmaStatus status;
+
+            lzma_init_allocs(&allocs, lzma_heap);
+
+            gb_rom_comp_bank_offset[0] = 0;
+            bank_to_cache_idx[0] = _NOT_COMPRESSED;
+
+            for(bank_idx=1; src_offset < ROM_DATA_LENGTH; bank_idx++){
+                wdog_refresh();
+                size_t src_buf_size = ROM_DATA_LENGTH - src_offset; 
+                size_t dst_buf_size = available_size;
+                SRes res; 
+
+                gb_rom_comp_bank_offset[bank_idx] = src_offset;
+
+                res = LzmaDecode(
+                    &GB_ROM_SRAM_CACHE[0], &dst_buf_size,
+                    &GB_ROM_COMP[src_offset], &src_buf_size,
+                    lzma_prop_data, 5,
+                    LZMA_FINISH_ANY, &status,
+                    &allocs);
+                assert(res == SZ_OK);
+                assert(status == LZMA_STATUS_FINISHED_WITH_MARK);
+                assert(dst_buf_size == BANK_SIZE);
+                
+                src_offset += src_buf_size; 
             }
             break;
         }
