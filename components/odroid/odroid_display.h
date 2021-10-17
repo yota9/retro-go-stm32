@@ -28,8 +28,8 @@ typedef enum
 typedef enum
 {
     ODROID_DISPLAY_SCALING_OFF = 0,   // No scaling, center image on screen
-    ODROID_DISPLAY_SCALING_FIT,       // Scale and preserve aspect ratio
-    ODROID_DISPLAY_SCALING_FILL,      // Scale and stretch to fill screen
+    ODROID_DISPLAY_SCALING_FIT,       // Scale and preserve aspect ratio, black borders where necessary
+    ODROID_DISPLAY_SCALING_FULL,      // Scale and maybe stretch to fill the screen
     ODROID_DISPLAY_SCALING_CUSTOM,    // Scale and stretch in a custom way
     ODROID_DISPLAY_SCALING_COUNT
 } odroid_display_scaling_t;
