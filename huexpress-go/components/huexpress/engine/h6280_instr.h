@@ -85,6 +85,9 @@ static const DRAM_ATTR UBYTE bcdbin[0x100] = {
 // Stack access
 #define push_8bit(byte) (*(SP_BASE + reg_s--) = (byte))
 #define push_16bit(addr) ({UWORD x = addr; push_8bit(x >> 8); push_8bit(x & 0xFF);})
+
+// This code is a bit undefined but I don't dare to fix it
+#pragma GCC diagnostic ignored "-Wsequence-point"
 #define pull_8bit() (*(SP_BASE + ++reg_s))
 #define pull_16bit() (pull_8bit() | pull_8bit() << 8)
 

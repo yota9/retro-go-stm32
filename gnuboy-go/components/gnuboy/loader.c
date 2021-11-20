@@ -338,11 +338,11 @@ rom_loadbank_cache(short bank)
 			rom.bank[reclaimed_bank] 			= NULL;
 
 		#ifdef _TRACE_GB_CACHE
-			printf("S -bank%03d +bank%03d cch=%02d TS=%d\n",reclaimed_bank,bank, reclaimed_idx, cache_ts[reclaimed_idx]);
+			printf("S -bank%03d +bank%03d cch=%02d TS=%ld\n",reclaimed_bank,bank, reclaimed_idx, cache_ts[reclaimed_idx]);
 			swap_count++;
 
 		} else {
-			printf("F +bank%03d cch=%02d TS=%d\n",bank, reclaimed_idx, cache_ts[reclaimed_idx]);
+			printf("F +bank%03d cch=%02d TS=%ld\n",bank, reclaimed_idx, cache_ts[reclaimed_idx]);
 		#endif
 		}
 
@@ -455,8 +455,7 @@ void gb_loader_restore_cache() {
                 }
                 break;
                 case COMPRESSION_LZMA: {
-                    size_t n_decomp_bytes;
-                    n_decomp_bytes = lzma_inflate(
+                    lzma_inflate(
                             &GB_ROM_SRAM_CACHE[OFFSET],
                             BANK_SIZE,
                             &GB_ROM_COMP[gb_rom_comp_bank_offset[bank]],
@@ -499,7 +498,7 @@ int IRAM_ATTR rom_loadbank(short bank)
 		rom_loadbank_cache(bank);
 	// uncached
 	else
-		rom.bank[bank] = &ROM_DATA[OFFSET];
+		rom.bank[bank] = (byte *) &ROM_DATA[OFFSET];
 #endif
 	return 0;
 }
@@ -543,7 +542,7 @@ static void gb_rom_compress_load(){
 
     if (bank_cache_size > _MAX_GB_ROM_BANK_IN_CACHE) bank_cache_size = _MAX_GB_ROM_BANK_IN_CACHE-1;
 
-    printf("SRAM cache size : %ld banks\n", bank_cache_size);
+    printf("SRAM cache size : %d banks\n", bank_cache_size);
 
     /* parse compressed ROM to determine:
     - number of banks (16KB trunks)

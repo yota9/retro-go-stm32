@@ -23,6 +23,9 @@
 ** by ducalex
 */
 
+// TODO: Figure out why these warnings occur
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 #include <string.h>
 #include <nofrendo.h>
 #include <nes_input.h>

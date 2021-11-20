@@ -245,11 +245,6 @@ int nes_state_save(uint8_t *flash_ptr, size_t size)
    MESSAGE_INFO("state_save: Game %d saved!\n", save_slot);
 
    return 0;
-
-_error:
-   MESSAGE_ERROR("state_save: Save failed!\n");
-   // fclose(file);
-   return -1;
 }
 
 int nes_state_load(uint8_t* flash_ptr, size_t size)
