@@ -517,8 +517,6 @@ static void gb_rom_compress_load(){
     else if(strcmp(ROM_EXT, "lzma") == 0) rom_comp_type = COMPRESSION_LZMA;
     else rom_comp_type = COMPRESSION_NONE;
 
-    if(rom_comp_type == COMPRESSION_NONE) return;
-
     /* dest pointer to the ROM data in the internal RAM (raw) */
     unsigned char *dest = (unsigned char *)&_GB_ROM_UNPACK_BUFFER;
 
@@ -529,6 +527,8 @@ static void gb_rom_compress_load(){
 #endif
     GB_ROM_COMP        = (unsigned char *)src;
     GB_ROM_SRAM_CACHE = (unsigned char *)dest;
+
+    if (rom_comp_type == COMPRESSION_NONE) return;
 
     printf("Compressed ROM detected #%d\n", ROM_DATA_LENGTH);
     printf("Uncompressing to %p. %ld bytes available.\n", dest, available_size);
